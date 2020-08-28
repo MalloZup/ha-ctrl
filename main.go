@@ -1,22 +1,43 @@
 package main
 
 import (
-	ps "github.com/mitchellh/go-ps"
+	ps "github.com/shirou/gopsutil/process"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	SolutionSheet         = "/usr/share/saptune/solutions"
-	OverrideSolutionSheet = "/etc/saptune/override/solutions"
-	DeprecSolutionSheet   = "/usr/share/saptune/solsdeprecated"
-	NoteTuningSheets      = "/usr/share/saptune/notes/"
-	ArchX86               = "amd64"      // ArchX86 is the GOARCH value for x86 platform.
-	ArchPPC64LE           = "ppc64le"    // ArchPPC64LE is the GOARCH for 64-bit PowerPC little endian platform.
-	ArchX86PC             = "amd64_PC"   // ArchX86 is the GOARCH value for x86 platform. PC indicates PageCache is available
-	ArchPPC64LEPC         = "ppc64le_PC" // ArchPPC64LE is the GOARCH for 64-bit PowerPC little endian platform. PC indicates PageCache is available
-)
+func checkPacemakerProcesses(proc *ps.Process) {
+	pacemakerProcNames := []string{
+		// this might be different across versions..
+		"/usr/sbin/pacemakerd",
+		"/usr/lib/pacemaker/pacemaker-based",
+		"/usr/lib/pacemaker/pacemaker-fenced",
+		"/usr/lib/pacemaker/pacemaker-execd",
+		"/usr/lib/pacemaker/pacemaker-attrd",
+		"/usr/lib/pacemaker/pacemaker-schedulerd",
+		"/usr/lib/pacemaker/pacemaker-controld",
+	}
+	procExec, _ := proc.Exe()
+	log.Debugf("%d\t%s\n", proc.Pid, procExec)
+	// go trough the list of our process and check their status
+	for _, p := range pacemakerProcNames {
+		if procExec == p {
+			procStatus, _ := proc.Status()
+			log.Infof("%d\t%s\t%s\n", proc.Pid, procExec, procStatus)
+			// R: Running S: Sleep T: Stop I: Idle
+			// Z: Zombie W: Wait L: Lock
+			// tollerate running and sleeping. Otherwise print warning
+			if procStatus != "R" && procStatus != "S" {
+				log.Warnf("Process %s\t state is in a not expected status: %d\t%s\n", procExec, proc.Pid, procStatus)
+			}
+		}
+	}
+
+}
 
 func main() {
+
+	log.Info("Starting ha-control..")
+
 	processList, err := ps.Processes()
 	if err != nil {
 		log.Println("ps.Processes() Failed, are you using windows?")
@@ -24,9 +45,14 @@ func main() {
 	}
 
 	for x := range processList {
-		var process ps.Process
-		process = processList[x]
-		log.Printf("%d\t%s\n", process.Pid(), process.Executable())
+		proc := processList[x]
+		procExec, _ := proc.Exe()
+		log.Debugf("%d\t%s\n", proc.Pid, procExec)
+		// go trough the list
+		checkPacemakerProcesses(proc)
 
 	}
+
+	log.Info("Health check sucessfully completed!")
+
 }
