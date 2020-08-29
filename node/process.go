@@ -7,7 +7,6 @@ import (
 
 // CheckPacemakerProcesses check pacemaker process
 func CheckPacemakerProcesses() {
-
 	pacemakerProcNames := map[string]bool{
 		// this might be different across versions..
 		"/usr/sbin/pacemakerd":                    false,
@@ -21,13 +20,14 @@ func CheckPacemakerProcesses() {
 
 	processList, err := ps.Processes()
 	if err != nil {
-		log.Println("ps.Processes() Failed, are you using windows?")
+		log.Errorln("ps.Processes() Failed, are you using windows?")
 		return
 	}
 
 	for x := range processList {
 		proc := processList[x]
 		procExec, _ := proc.Exe()
+		procStatus, _ := proc.Status()
 		log.Debugf("%d\t%s\n", proc.Pid, procExec)
 
 		// go trough the list of our process and check their status
@@ -36,7 +36,6 @@ func CheckPacemakerProcesses() {
 				// process expected was found
 				pacemakerProcNames[procExec] = true
 
-				procStatus, _ := proc.Status()
 				log.Infof("%d\t%s\t%s\n", proc.Pid, procExec, procStatus)
 				// R: Running S: Sleep T: Stop I: Idle  Z: Zombie W: Wait L: Lock
 				// tollerate running and sleeping. Otherwise print warning
