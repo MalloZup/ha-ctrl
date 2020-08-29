@@ -16,5 +16,8 @@ func main() {
 	node.CheckClusterServices()
 
 	log.Infoln("Checking cluster status with help of crm_mon")
-	node.CheckCrmMonStatus()
+	node.CheckClusterNodes()
+
+	log.Infoln("Checking if stonith is enabled")
+	node.DoStonithChecks()
 }

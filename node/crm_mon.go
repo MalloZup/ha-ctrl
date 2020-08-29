@@ -37,7 +37,7 @@ type crmMonResult struct {
 			Blocked  string `xml:"blocked,attr"`
 		} `xml:"resources_configured"`
 		ClusterOptions struct {
-			StonithEnabled   string `xml:"stonith-enabled,attr"`
+			StonithEnabled   bool   `xml:"stonith-enabled,attr"`
 			SymmetricCluster string `xml:"symmetric-cluster,attr"`
 			NoQuorumPolicy   string `xml:"no-quorum-policy,attr"`
 			MaintenanceMode  string `xml:"maintenance-mode,attr"`
@@ -160,17 +160,41 @@ type crmMonResult struct {
 	} `xml:"status"`
 }
 
-// CheckCrmMonStatus with crm_mon interface, usefull for resource check etc
-func CheckCrmMonStatus() {
+// CheckClusterNodes with crm_mon interface, usefull for resource check etc
+func CheckClusterNodes() {
 	var crmMon *crmMonResult
 	crmMonXML, err := exec.Command("/usr/sbin/crm_mon", "-X", "--inactive").Output()
 	if err != nil {
 		log.Errorf("error while executing crm_mon")
+		return
 	}
 
 	err = xml.Unmarshal(crmMonXML, &crmMon)
 	if err != nil {
 		log.Errorf("error while parsing crm_mon XML output")
+		return
 	}
-	log.Infof("%s", crmMon)
+	// improve this later on, now only for demo
+	log.Printf("Node 01 is online", crmMon.Nodes.Node[0].Online)
+
+}
+
+// DoStonithChecks do the checks if stonith is enabled otherwise skip
+func DoStonithChecks() {
+	var crmMon *crmMonResult
+
+	crmMonXML, err := exec.Command("/usr/sbin/crm_mon", "-X", "--inactive").Output()
+	if err != nil {
+		log.Errorf("error while executing crm_mon")
+		return
+	}
+	err = xml.Unmarshal(crmMonXML, &crmMon)
+	if err != nil {
+		log.Errorf("error while parsing crm_mon XML output")
+		return
+	}
+
+	if crmMon.Summary.ClusterOptions.StonithEnabled {
+		log.Println("Stonith is enabled doing some extra checks..")
+	}
 }
