@@ -3,6 +3,12 @@
 ha-ctrl is the efficient, intelligent and user friendly CLI which check pacemaker cluster status
 
 
+# Usage
+
+`./ha-ctrl`
+
+Will run auto-detecting  all the needed checks and print status.
+
 # Features:
 
 ## checks
